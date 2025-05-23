@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Div 296 Tax Calculator</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; padding: 20px; }
+        .container { border: 1px solid #ccc; padding: 20px; border-radius: 5px; }
+        label { display: block; margin: 10px 0; }
+        input { width: 150px; padding: 5px; margin-left: 10px; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        #result { margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 4px; }
+        .error { color: red; }
+        #advancedSection { margin-top: 15px; border-top: 1px solid #ddd; padding-top: 15px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Div 296 Tax Calculator</h1>
+        
+        <label>Starting TSB ($ million):
+            <input type="number" id="startingTSB" step="0.1">
+        </label>
+        
+        <label>Ending TSB ($ million):
+            <input type="number" id="endingTSB" step="0.1">
+        </label>
+
+        <button onclick="toggleAdvanced()" id="toggleAdvancedBtn">Show Advanced Options</button>
+        
+        <div id="advancedSection" style="display: none;">
+            <label>Withdrawals ($ million):
+                <input type="number" id="withdrawals" step="0.1" value="0">
+            </label>
+            
+            <label>Contributions ($ million):
+                <input type="number" id="contributions" step="0.1" value="0">
+            </label>
+            
+            <label>Transferrable Negative Earnings ($ million):
+                <input type="number" id="transferrableNegative" step="0.1" value="0">
+            </label>
+        </div>
+
+        <button onclick="calculateTax()">Calculate Tax</button>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function toggleAdvanced() {
+            const advancedSection = document.getElementById('advancedSection');
+            const btn = document.getElementById('toggleAdvancedBtn');
+            if (advancedSection.style.display === 'none') {
+                advancedSection.style.display = 'block';
+                btn.textContent = 'Hide Advanced Options';
+            } else {
+                advancedSection.style.display = 'none';
+                btn.textContent = 'Show Advanced Options';
+            }
+        }
+
+        function calculateTax() {
+            // Get core values
+            const starting = parseFloat(document.getElementById('startingTSB').value);
+            const ending = parseFloat(document.getElementById('endingTSB').value);
+            
+            // Get advanced values
+            const withdrawals = (parseFloat(document.getElementById('withdrawals').value) || 0) * 1000000;
+            const contributions = (parseFloat(document.getElementById('contributions').value) || 0) * 1000000;
+            const transferrableNegative = (parseFloat(document.getElementById('transferrableNegative').value) || 0) * 1000000;
+
+            // Clear results
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = '';
+            resultDiv.innerHTML = '';
+
+            // Validate inputs
+            if (isNaN(starting) || isNaN(ending)) {
+                showResult('Please enter valid numbers for TSB values', 'error');
+                return;
+            }
+
+            // Convert to dollars
+            const startingTSB = starting * 1000000;
+            const endingTSB = ending * 1000000;
+
+            // Check if tax applies
+            if (endingTSB <= 3000000) {
+                showResult('No Div 296 tax payable - balance remains ≤ $3 million');
+                return;
+            }
+
+            // Calculate adjusted starting balance
+            const adjustedStarting = Math.max(startingTSB, 3000000);
+
+            // Calculate raw earnings
+            let currentTSE = (endingTSB + withdrawals - contributions) - adjustedStarting;
+
+            // Apply transferrable negative earnings
+            let taxableTSE = currentTSE;
+            let remainingTransferrable = transferrableNegative;
+            
+            if (currentTSE > 0) {
+                taxableTSE = Math.max(currentTSE - transferrableNegative, 0);
+                remainingTransferrable = Math.max(transferrableNegative - currentTSE, 0);
+            } else {
+                remainingTransferrable += (-currentTSE);
+                taxableTSE = 0;
+            }
+
+            // Calculate tax liability
+            const taxableProportion = (endingTSB - 3000000) / endingTSB;
+            const tax = 0.15 * taxableTSE * taxableProportion;
+
+            // Build result string
+            const resultHTML = `
+                <strong>Calculation Breakdown:</strong><br>
+                - Adjusted Starting Balance: ${formatCurrency(adjustedStarting)}<br>
+                - Withdrawals: ${formatCurrency(withdrawals)}<br>
+                - Contributions: ${formatCurrency(contributions)}<br>
+                - Raw Earnings: ${formatCurrency(currentTSE)}<br>
+                ${transferrableNegative > 0 ? `- Applied Negative Earnings: ${formatCurrency(Math.min(transferrableNegative, currentTSE))}<br>` : ''}
+                - Taxable Earnings: ${formatCurrency(taxableTSE)}<br>
+                - Remaining Transferrable Losses: ${formatCurrency(remainingTransferrable)}<br>
+                - Taxable Proportion: ${(taxableProportion * 100).toFixed(1)}%<br>
+                <strong>Estimated Div 296 Tax: ${formatCurrency(tax)}</strong>
+            `;
+
+            showResult(resultHTML);
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-AU', {
+                style: 'currency',
+                currency: 'AUD',
+                maximumFractionDigits: 0
+            }).format(amount);
+        }
+
+        function showResult(message, className = '') {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = className;
+            resultDiv.innerHTML = message;
+        }
+    </script>
+</body>
+</html>
