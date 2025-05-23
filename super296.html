@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Div 296 Tax Calculator</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; padding: 20px; }
+        .container { border: 1px solid #ccc; padding: 20px; border-radius: 5px; }
+        label { display: block; margin: 10px 0; }
+        input { width: 150px; padding: 5px; margin-left: 10px; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        #result { margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 4px; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Div 296 Tax Calculator</h1>
+        
+        <label>Starting TSB ($ million):
+            <input type="number" id="startingTSB" step="0.1">
+        </label>
+        
+        <label>Ending TSB ($ million):
+            <input type="number" id="endingTSB" step="0.1">
+        </label>
+        
+        <button onclick="calculateTax()">Calculate Tax</button>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function calculateTax() {
+            // Get input values
+            const starting = parseFloat(document.getElementById('startingTSB').value);
+            const ending = parseFloat(document.getElementById('endingTSB').value);
+            
+            // Clear previous results
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = '';
+            resultDiv.innerHTML = '';
+
+            // Validate inputs
+            if (isNaN(starting) || isNaN(ending)) {
+                showResult('Please enter valid numbers in both fields', 'error');
+                return;
+            }
+
+            // Convert to actual dollars
+            const startingTSB = starting * 1000000;
+            const endingTSB = ending * 1000000;
+
+            // Check if tax applies
+            if (endingTSB <= 3000000) {
+                showResult('No Div 296 tax payable - balance remains ≤ $3 million');
+                return;
+            }
+
+            // Calculate Taxable Superannuation Earnings
+            const adjustedStarting = Math.max(startingTSB, 3000000);
+            const TSE = endingTSB - adjustedStarting;
+
+            if (TSE <= 0) {
+                showResult(`No immediate tax payable. Negative earnings (${formatCurrency(TSE)}) can be carried forward.`);
+                return;
+            }
+
+            // Calculate tax liability
+            const taxableProportion = (endingTSB - 3000000) / endingTSB;
+            const tax = 0.15 * TSE * taxableProportion;
+
+            // Display results
+            const resultHTML = `
+                <strong>Calculation Breakdown:</strong><br>
+                - Adjusted Starting Balance: ${formatCurrency(adjustedStarting)}<br>
+                - Taxable Super Earnings: ${formatCurrency(TSE)}<br>
+                - Taxable Proportion: ${(taxableProportion * 100).toFixed(1)}%<br>
+                <strong>Estimated Div 296 Tax: ${formatCurrency(tax)}</strong>
+            `;
+            
+            showResult(resultHTML);
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-AU', {
+                style: 'currency',
+                currency: 'AUD',
+                maximumFractionDigits: 0
+            }).format(amount);
+        }
+
+        function showResult(message, className = '') {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = className;
+            resultDiv.innerHTML = message;
+        }
+    </script>
+</body>
+</html>
