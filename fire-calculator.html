@@ -102,7 +102,7 @@ const log = {
 
 // ── Global state ──────────────────────────────────────────────────────────────
 const S = {
-  currentAge:        38,
+  currentAge:        35,
   retireAge:         50,
   accessAge:         60,
   endAge:            85,
@@ -111,8 +111,8 @@ const S = {
   // savingsEnabled: whether savings contributions are made during this stage
   // Sorted by fromAge ascending at simulate() time
   incomeSchedule: [
-    { fromAge: 38, income: 108748, hoursRatio: 100, savingsEnabled: true  },
-    { fromAge: 46, income: 108748, hoursRatio: 80,  savingsEnabled: false },
+    { fromAge: 38, income: 100000, hoursRatio: 100, savingsEnabled: true  },
+    { fromAge: 46, income: 100000, hoursRatio: 80,  savingsEnabled: false },
   ],
 
   tableEveryYear: false,  // toggle between every-year and every-other-year table
@@ -128,11 +128,11 @@ const S = {
 
   empSupRate:        11.5,   // %
   salSacRate:        0,      // %
-  superBalance:      290000,
+  superBalance:      100000,
   superGrowth:       6.0,    // % real p.a.
 
   savingsRate:       25,     // % of gross income
-  savingsBalance:    1200000,
+  savingsBalance:    100000,
   savingsGrowthDisc: 0,      // % discount vs super growth
 
   retirementSpend:   52000,
