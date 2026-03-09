@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FIRE.calc</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#0b1520;color:#c8d8ea;font-family:'Segoe UI',system-ui,sans-serif;font-size:14px}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:#0b1520}
+::-webkit-scrollbar-thumb{background:#2a3d52;border-radius:3px}
+
+#app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+#header{padding:.7rem 1.2rem;border-bottom:1px solid #1a2a38;flex-shrink:0;display:flex;align-items:baseline;gap:1rem}
+#header h1{font-size:1.2rem;font-weight:700;color:#e2eaf4;letter-spacing:-.02em;font-family:monospace}
+#header h1 span{color:#4a90d9}
+#header small{font-size:.62rem;color:#3a5268;font-family:monospace;letter-spacing:.1em}
+#body{display:flex;flex:1;overflow:hidden}
+
+#controls{width:310px;flex-shrink:0;overflow-y:auto;border-right:1px solid #1a2a38;padding:1rem;background:#0d1a24}
+#output{flex:1;overflow-y:auto;padding:1rem 1.2rem}
+
+.section{margin-bottom:1.2rem;border-left:2px solid var(--acc,#4a90d9);padding-left:.8rem}
+.sec-btn{background:none;border:none;color:#c8d8ea;cursor:pointer;font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;font-family:monospace;display:flex;align-items:center;gap:5px;padding:0;margin-bottom:.7rem;width:100%}
+.sec-btn .arr{color:var(--acc,#4a90d9)}
+
+.field{margin-bottom:.85rem}
+.field-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px}
+.field-lbl{font-size:.63rem;letter-spacing:.08em;text-transform:uppercase;color:#8a9bb0;font-family:monospace}
+.field-val{font-size:.8rem;font-weight:700;color:#e2eaf4;font-family:monospace}
+.combo-wrap{display:flex;gap:5px;align-items:center}
+.combo-wrap input[type=range]{flex:1;accent-color:#4a90d9;cursor:pointer}
+.combo-wrap input[type=number]{width:76px;flex-shrink:0}
+input[type=number],select{background:#16212e;border:1px solid #2a3d52;border-radius:4px;color:#e2eaf4;padding:.32rem .5rem;font-family:monospace;font-size:.8rem;outline:none;width:100%}
+input[type=number]:focus,select:focus{border-color:#4a90d9;background:#1e2d40}
+.hint{font-size:.59rem;color:#3a5268;font-family:monospace;margin-top:2px;line-height:1.5}
+
+.sched-tbl{width:100%;border-collapse:collapse;font-family:monospace;font-size:.7rem;margin-bottom:.5rem}
+.sched-tbl th{color:#5a7a96;font-weight:500;padding:3px 4px;text-align:left;border-bottom:1px solid #1a2a38}
+.sched-tbl td{padding:3px 4px;border-bottom:1px solid #0f1820}
+.sched-tbl td input{padding:2px 4px;font-size:.7rem}
+.add-btn{background:none;border:1px dashed #2a5a7c;color:#4a90d9;border-radius:4px;padding:.25rem .7rem;cursor:pointer;font-size:.67rem;font-family:monospace;width:100%;margin-top:4px}
+.add-btn:hover{background:#0f1e2e}
+.del-btn{background:none;border:none;color:#e05555;cursor:pointer;font-size:.9rem;padding:0 3px;line-height:1}
+
+.ev-row{display:flex;gap:6px;margin-bottom:6px;align-items:flex-end}
+.ev-lbl{font-size:.59rem;color:#8a9bb0;font-family:monospace;display:block;margin-bottom:2px}
+
+#stats{display:grid;grid-template-columns:repeat(4,1fr);gap:.6rem;margin-bottom:1rem}
+.stat{background:#0f1a24;border:1px solid #1e2d3d;border-radius:6px;padding:.7rem .85rem;border-top:2px solid var(--acc,#4a90d9)}
+.stat-lbl{font-size:.57rem;letter-spacing:.12em;text-transform:uppercase;color:#5a7a96;font-family:monospace;margin-bottom:3px}
+.stat-val{font-size:1.05rem;font-weight:700;color:#e2eaf4;font-family:monospace}
+.stat-sub{font-size:.6rem;color:#5a7a96;font-family:monospace;margin-top:2px}
+
+#fi-wrap{margin-bottom:1rem}
+#fi-labels{display:flex;justify-content:space-between;margin-bottom:4px}
+#fi-labels span{font-size:.6rem;font-family:monospace;color:#5a7a96;letter-spacing:.06em;text-transform:uppercase}
+#fi-track{background:#0f1a24;border-radius:4px;height:7px;overflow:hidden}
+#fi-fill{height:100%;background:linear-gradient(90deg,#4a90d9,#e8c96a);border-radius:4px;transition:width .3s}
+
+#chart-tabs{display:flex;gap:5px;margin-bottom:.7rem}
+.tab{background:none;border:1px solid #1e2d3d;color:#5a7a96;border-radius:4px;padding:.24rem .75rem;cursor:pointer;font-size:.63rem;letter-spacing:.08em;text-transform:uppercase;font-family:monospace}
+.tab.on{background:#1e3450;border-color:#4a90d9;color:#4a90d9}
+#chart-box{background:#0d1820;border:1px solid #1a2a38;border-radius:8px;padding:.8rem;margin-bottom:1rem;position:relative;overflow:hidden}
+#chart-box svg{display:block}
+#tip{position:absolute;background:#0a1520;border:1px solid #2a3d52;border-radius:6px;padding:.5rem .75rem;font-family:monospace;font-size:.7rem;pointer-events:none;display:none;z-index:10;min-width:140px}
+
+#tbl-wrap{background:#0d1820;border:1px solid #1a2a38;border-radius:8px;overflow:hidden;margin-bottom:1rem}
+#tbl-head{padding:.55rem 1rem;border-bottom:1px solid #1a2a38;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:#5a7a96;font-family:monospace;overflow:hidden}
+#tbl-scroll{overflow-x:auto}
+#proj-tbl{width:100%;border-collapse:collapse;font-family:monospace;font-size:.7rem}
+#proj-tbl th{padding:.38rem .65rem;text-align:right;color:#5a7a96;font-weight:500;font-size:.62rem;white-space:nowrap;border-bottom:1px solid #1a2a38}
+#proj-tbl td{padding:.32rem .65rem;text-align:right;border-bottom:1px solid #0f1820;white-space:nowrap}
+#proj-tbl tr.key{background:#111e2a}
+#proj-tbl tr:hover{background:#0f1e2c}
+
+#foot{font-size:.57rem;color:#3a5268;font-family:monospace;line-height:1.9;margin-bottom:1rem}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <h1>FIRE<span>.</span>calc</h1>
+    <small>FINANCIAL INDEPENDENCE · RETIRE EARLY · AUSTRALIA</small>
+  </div>
+  <div id="body">
+    <div id="controls"></div>
+    <div id="output"></div>
+  </div>
+</div>
+<script>
+'use strict';
+
+// ── Logging ───────────────────────────────────────────────────────────────────
+const log = {
+  info:  (...a) => console.log( '%c[FIRE]', 'color:#4a90d9;font-weight:bold', ...a),
+  warn:  (...a) => console.warn('%c[FIRE]', 'color:#e8c96a;font-weight:bold', ...a),
+  error: (...a) => console.error('%c[FIRE]','color:#e05555;font-weight:bold', ...a),
+  sim:   (...a) => console.log( '%c[SIM]',  'color:#4aad8e;font-weight:bold', ...a),
+};
+
+// ── Global state ──────────────────────────────────────────────────────────────
+const S = {
+  currentAge:        38,
+  retireAge:         50,
+  accessAge:         60,
+  endAge:            85,
+
+  // Income schedule: effective income = income * hoursRatio/100
+  // savingsEnabled: whether savings contributions are made during this stage
+  // Sorted by fromAge ascending at simulate() time
+  incomeSchedule: [
+    { fromAge: 38, income: 108748, hoursRatio: 100, savingsEnabled: true  },
+    { fromAge: 46, income: 108748, hoursRatio: 80,  savingsEnabled: false },
+  ],
+
+  tableEveryYear: false,  // toggle between every-year and every-other-year table
+
+  // Super concessional contributions cap
+  superConCap:       30000,  // $ per year (2024-25 cap)
+
+  // Age Pension (simplified means test, 2024-25 real terms)
+  agePensionEnabled: true,
+  agePensionAge:     67,
+  isHomeowner:       true,
+  isSingle:          true,
+
+  empSupRate:        11.5,   // %
+  salSacRate:        0,      // %
+  superBalance:      290000,
+  superGrowth:       6.0,    // % real p.a.
+
+  savingsRate:       25,     // % of gross income
+  savingsBalance:    1200000,
+  savingsGrowthDisc: 0,      // % discount vs super growth
+
+  retirementSpend:   52000,
+  taxYear:           '2024-25',
+
+  windfalls:    [],  // [{ age, amount }]
+  careerBreaks: [],  // [age]
+
+  chartView: 'wealth',
+  retIncExpanded: false,  // expand Retirement Income column into components
+};
+
+// ── Tax ───────────────────────────────────────────────────────────────────────
+const TAX_TABLES = {
+  '2022-23': { b:[[0,0],[18201,.19],[45001,.325],[120001,.37],[180001,.45]], litoMax:700, litoPS:37500, litoPR:.015, litoPE:66667, med:.02 },
+  '2023-24': { b:[[0,0],[18201,.19],[45001,.325],[120001,.37],[180001,.45]], litoMax:700, litoPS:37500, litoPR:.015, litoPE:66667, med:.02 },
+  '2024-25': { b:[[0,0],[18201,.19],[45001,.30 ],[135001,.37],[190001,.45]], litoMax:700, litoPS:37500, litoPR:.015, litoPE:66667, med:.02 },
+};
+
+function calcTax(income, year) {
+  if (income <= 0) return 0;
+  const t = TAX_TABLES[year] || TAX_TABLES['2024-25'];
+  let tax = 0;
+  for (let i = t.b.length - 1; i >= 0; i--) {
+    if (income > t.b[i][0]) {
+      tax = (income - t.b[i][0]) * t.b[i][1];
+      for (let j = i - 1; j >= 1; j--) tax += (t.b[j][0] - t.b[j-1][0]) * t.b[j][1];
+      break;
+    }
+  }
+  const lito = income <= t.litoPS ? t.litoMax
+             : income <= t.litoPE ? t.litoMax - (income - t.litoPS) * t.litoPR
+             : 0;
+  tax = Math.max(0, tax - lito);
+  return tax + (income > 26000 ? income * t.med : 0);
+}
+
+// ── Simulation ────────────────────────────────────────────────────────────────
+function simulate() {
+  const supRate = S.empSupRate / 100;
+  const sacRate = S.salSacRate / 100;
+  const savRate = S.savingsRate / 100;
+  const supGrow = S.superGrowth / 100;
+  const savGrow = Math.max(0, supGrow - S.savingsGrowthDisc / 100);
+
+  const schedule = [...S.incomeSchedule].sort((a, b) => a.fromAge - b.fromAge);
+
+  const ages = [];
+  for (let a = S.currentAge; a <= S.endAge; a++) ages.push(a);
+  const n = ages.length;
+
+  // Find active schedule entry for an age (last entry where fromAge <= age)
+  function activeEntry(age) {
+    let entry = null;
+    for (const e of schedule) { if (e.fromAge <= age) entry = e; }
+    return entry;
+  }
+
+  function grossIncome(age) {
+    if (age > S.retireAge)            return 0;
+    if (S.careerBreaks.includes(age)) return 0;
+    const e = activeEntry(age);
+    if (!e) return 0;
+    return e.income * (e.hoursRatio / 100);
+  }
+
+  // Build rows
+  const rows = ages.map(age => ({
+    age, inc: grossIncome(age),
+    supSum: 0, supCon: 0, supErn: 0, supPay: 0,
+    savSum: 0, savCon: 0, savErn: 0,
+    bridgeSpend: 0,   // drawdown from savings to cover living costs
+    supShortfall: 0,  // super drawdown redirected to savings when super is depleted
+    tax: 0,
+  }));
+
+  // ── Age Pension calculator (simplified, 2024-25 real terms) ──────────────
+  // Full single pension ~$29,754/yr; couple ~$44,932 combined
+  // Assets test: full pension if assets below threshold, tapers $3/fn per $1k above
+  // Income test: tapers 50c/$ above free area
+  function calcAgePension(age, assets, otherIncome) {
+    if (!S.agePensionEnabled || age < S.agePensionAge) return 0;
+    const fullPension   = S.isSingle ? 29754 : 44932;
+    const assetsFullTh  = S.isSingle ? (S.isHomeowner ? 314000  : 566000)  : (S.isHomeowner ? 470000  : 722000);
+    const assetsCutoff  = S.isSingle ? (S.isHomeowner ? 697000  : 949000)  : (S.isHomeowner ? 1047000 : 1299000);
+    const incFreeArea   = S.isSingle ? 5720 : 10320;
+    const assetsAbove   = Math.max(0, assets - assetsFullTh);
+    const assetsTaper   = (assetsAbove / 1000) * 78;
+    const deemThresh    = S.isSingle ? 62600 : 103800;
+    const deemedIncome  = Math.min(assets, deemThresh) * 0.0025 + Math.max(0, assets - deemThresh) * 0.0225 + otherIncome;
+    const incomeAbove   = Math.max(0, deemedIncome - incFreeArea);
+    const incomeTaper   = incomeAbove * 0.5;
+    const pension = Math.max(0, fullPension - Math.max(assetsTaper, incomeTaper));
+    return assets >= assetsCutoff ? 0 : pension;
+  }
+
+  // ── Combined super + savings + pension pass ───────────────────────────────
+  // All three are computed together so pension can reduce drawdowns from BOTH
+  // super and savings in the same year.
+  //
+  // Order within each year i:
+  //   1. Contributions tax-capped super con for year i
+  //   2. Compute savings contributions and raw spending gap for year i
+  //   3. Calculate pension from current-year balances (supSum[i], savSum[i])
+  //   4. Pension reduces super drawdown (supPay) and savings bridge spend
+  //   5. Roll forward supSum[i+1] and savSum[i+1] using pension-adjusted figures
+
+  const conCap = S.superConCap;
+
+  rows[0].supSum = S.superBalance;
+  rows[0].savSum = S.savingsBalance;
+
+  for (let i = 0; i < n; i++) {
+    const r   = rows[i];
+    const ent = activeEntry(r.age);
+
+    // ── Contributions (super) ──
+    const rawCon      = r.inc * (supRate + sacRate);
+    r.capBreached     = rawCon > conCap;
+    r.supCon          = Math.min(rawCon, conCap) * 0.85;  // 15% contributions tax
+
+    // ── Contributions (savings) ──
+    r.savCon = (ent && ent.savingsEnabled && r.age <= S.retireAge && !S.careerBreaks.includes(r.age))
+               ? r.inc * savRate : 0;
+
+    // ── Raw spending needs before pension ──
+    // Super drawdown: full retirementSpend post-access (if balance allows)
+    const rawSupPay = r.age >= S.accessAge ? S.retirementSpend : 0;
+
+    // Savings bridge: spend gap not covered by income or super
+    let rawBridge = 0;
+    if (r.age > S.retireAge && r.age < S.accessAge) {
+      rawBridge = S.retirementSpend;
+    } else if (r.age <= S.retireAge && r.inc < S.retirementSpend) {
+      rawBridge = Math.max(0, S.retirementSpend - r.inc);
+    }
+
+    // ── Pension for this year (based on current balances) ──
+    const totalAssets = Math.max(0, r.supSum) + Math.max(0, r.savSum);
+    r.pension = calcAgePension(r.age, totalAssets, 0);
+
+    // ── Earnings on current balances (computed before drawdown decisions) ──
+    r.supErn = Math.max(0, r.supSum) * supGrow;
+    r.savErn = r.savSum > 0 ? r.savSum * savGrow : 0;
+
+    // ── Pension offsets total spend need; split across super and savings ──
+    // Priority: pension covers spend first, then super covers remainder, then savings.
+    // Pension reduces super drawdown; any pension left over then reduces savings bridge.
+    const supPayAfterPension = Math.max(0, rawSupPay - r.pension);
+    const pensionUsedOnSup   = rawSupPay - supPayAfterPension;   // how much pension offset super
+    const pensionRemaining   = r.pension - pensionUsedOnSup;     // leftover pension after super
+    const bridgeAfterPension = Math.max(0, rawBridge - pensionRemaining);
+
+    // Super can pay if end-of-year balance (before drawdown) covers the pension-reduced amount
+    const supBalBeforeDraw = r.supCon + r.supSum + r.supErn;
+    const canPayFromSuper  = supBalBeforeDraw >= supPayAfterPension;
+    r.supPay      = canPayFromSuper ? supPayAfterPension : 0;
+    r.bridgeSpend = bridgeAfterPension;
+
+    // Debug trace — visible in browser console when pension is active
+    if (r.pension > 0 && r.age <= S.accessAge + 5) {
+      log.sim(`Age ${r.age}: pension=${Math.round(r.pension)} rawSupPay=${rawSupPay} supPayAfterPension=${Math.round(supPayAfterPension)} r.supPay=${Math.round(r.supPay)} bridge=${Math.round(r.bridgeSpend)}`);
+    }
+
+    // ── Roll forward to next year ──
+    if (i < n - 1) {
+      const wf = (S.windfalls.find(w => w.age === ages[i+1]) || { amount: 0 }).amount;
+
+      // Super next year: opening balance + contributions + growth - pension-adjusted drawdown
+      rows[i+1].supSum = r.supCon + r.supSum + r.supErn - r.supPay;
+
+      // If super couldn't cover its reduced obligation, savings absorbs the shortfall
+      const supShortfall = canPayFromSuper ? 0 : supPayAfterPension;
+      r.supShortfall = supShortfall;
+      rows[i+1].savSum = r.savCon + r.savSum + r.savErn
+                        - r.bridgeSpend - supShortfall + wf;
+    }
+  }
+
+  // ── Tax pass ──
+  for (const r of rows) {
+    r.tax = calcTax(r.inc * (1 - sacRate), S.taxYear);
+  }
+
+  const result = rows.map(r => ({
+    age:           r.age,
+    netWorth:      Math.round(r.supSum + r.savSum),
+    superBal:      Math.round(r.supSum),
+    savingsBal:    Math.round(r.savSum),
+    savDepleted:   r.savSum < 0,  // flag for red highlighting
+    income:        Math.round(r.inc),
+    pension:       Math.round(r.pension || 0),
+    tax:           Math.round(r.tax),
+    supContrib:    Math.round(r.supCon),
+    capBreached:   r.capBreached || false,
+    savContrib:    Math.round(r.savCon),
+    supOutflow:    Math.round(r.supPay),
+    savOutflow:    Math.round(r.bridgeSpend + r.supShortfall),
+    incBalance:    Math.round(r.inc - r.tax - r.savCon),  // Income Balance column
+    totalEarnings: Math.round(Math.max(0, r.supSum) * supGrow + (r.savSum > 0 ? r.savSum * savGrow : 0)),
+    totalOutflows: Math.round(r.supPay + r.bridgeSpend + r.supShortfall),
+  }));
+
+  const capRows = result.filter(r => r.capBreached);
+  if (capRows.length) log.warn(`Super concessional cap breached at ages: ${capRows.map(r=>r.age).join(', ')}`);
+
+  log.sim(`Done. Rows: ${result.length}. NW@retire:`,
+    result.find(r => r.age === S.retireAge)?.netWorth ?? 'n/a');
+  return result;
+}
+
+// ── Formatters ────────────────────────────────────────────────────────────────
+const fmt     = n => { const a = Math.abs(n); return a>=1e6?`$${(n/1e6).toFixed(2)}M`:a>=1e3?`$${(n/1e3).toFixed(0)}k`:`$${Math.round(n)}`; };
+const fmtFull = n => (n<0?'-':'')+'$'+Math.abs(Math.round(n)).toLocaleString('en-AU');
+
+// ── DOM helper ────────────────────────────────────────────────────────────────
+// Creates element, sets properties, appends to parent
+function el(tag, cfg, parent) {
+  const e = document.createElement(tag);
+  if (cfg) {
+    for (const [k, v] of Object.entries(cfg)) {
+      if      (k === 'cls')  e.className   = v;
+      else if (k === 'text') e.textContent = v;
+      else if (k === 'html') e.innerHTML   = v;
+      else                   e[k]          = v;
+    }
+  }
+  if (parent) parent.appendChild(e);
+  return e;
+}
+
+// ── SVG chart builder ─────────────────────────────────────────────────────────
+const SERIES = {
+  wealth: [
+    { key:'netWorth',      label:'Net Worth', color:'#e8c96a' },
+    { key:'superBal',      label:'Super',     color:'#4aad8e' },
+    { key:'savingsBal',    label:'Savings',   color:'#4a90d9' },
+  ],
+  income: [
+    { key:'income',        label:'Gross Income',   color:'#a07bda' },
+    { key:'pension',       label:'Age Pension',    color:'#7ab8e8', dash:'5,3' },
+    { key:'tax',           label:'Tax Paid',        color:'#e05555' },
+    { key:'supContrib',    label:'Super Contrib',   color:'#4aad8e', dash:'5,3' },
+    { key:'savContrib',    label:'Savings Contrib', color:'#4a90d9', dash:'5,3' },
+  ],
+  flows: [
+    { key:'totalEarnings', label:'Portfolio Earnings', color:'#e8c96a' },
+    { key:'totalOutflows', label:'Total Outflows',     color:'#e05555' },
+    { key:'savContrib',    label:'Savings Contrib',    color:'#4a90d9', dash:'5,3' },
+  ],
+};
+
+function buildChart(data, view, W, H) {
+  const P  = { t:24, r:16, b:40, l:68 };
+  const cw = W - P.l - P.r;
+  const ch = H - P.t - P.b;
+  const series = SERIES[view] || SERIES.wealth;
+
+  let maxY = 0;
+  for (const d of data) for (const sr of series) { const v = d[sr.key]||0; if(v>maxY) maxY=v; }
+  maxY = maxY * 1.1 || 1000;
+
+  const rawStep = maxY / 5;
+  const mag     = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const step    = Math.ceil(rawStep / mag) * mag;
+  const yTicks  = [];
+  for (let v = 0; v <= maxY * 1.05; v += step) yTicks.push(v);
+
+  const minAge  = data[0].age;
+  const maxAge  = data[data.length-1].age;
+  const xAge    = age => P.l + (age - minAge) / (maxAge - minAge) * cw;
+  const yVal    = val => P.t + ch - Math.min(1, Math.max(0, val / maxY)) * ch;
+
+  let s = `<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">`;
+
+  // Y grid
+  for (const v of yTicks) {
+    const yv = yVal(v);
+    s += `<line x1="${P.l}" y1="${yv}" x2="${P.l+cw}" y2="${yv}" stroke="#1a2a38" stroke-width="1"/>`;
+    s += `<text x="${P.l-5}" y="${yv+4}" text-anchor="end" fill="#5a7a96" font-size="10" font-family="monospace">${fmt(v)}</text>`;
+  }
+
+  // X grid
+  for (const d of data) {
+    if (d.age % 5 !== 0) continue;
+    const xv = xAge(d.age);
+    s += `<line x1="${xv}" y1="${P.t}" x2="${xv}" y2="${P.t+ch}" stroke="#1a2a38" stroke-width="1"/>`;
+    s += `<text x="${xv}" y="${P.t+ch+14}" text-anchor="middle" fill="#5a7a96" font-size="10" font-family="monospace">${d.age}</text>`;
+  }
+
+  // Reference lines: fixed (RETIRE, SUPER)
+  for (const r of [
+    { age:S.retireAge, color:'#e05555', label:'RETIRE' },
+    { age:S.accessAge, color:'#4aad8e', label:'SUPER'  },
+  ]) {
+    if (r.age < minAge || r.age > maxAge) continue;
+    const xv = xAge(r.age);
+    s += `<line x1="${xv}" y1="${P.t}" x2="${xv}" y2="${P.t+ch}" stroke="${r.color}" stroke-width="1" stroke-dasharray="4,3" opacity=".8"/>`;
+    s += `<text x="${xv+3}" y="${P.t+11}" fill="${r.color}" font-size="9" font-family="monospace">${r.label}</text>`;
+  }
+
+  // Income schedule stage annotations — show each transition after the first
+  const sortedSched = [...S.incomeSchedule].sort((a,b) => a.fromAge - b.fromAge);
+  let labelRowOffset = 0;  // stagger labels if ages are close
+  sortedSched.forEach((entry, si) => {
+    if (si === 0) return;  // skip first entry (starting point)
+    const age = entry.fromAge;
+    if (age < minAge || age > maxAge) return;
+    const xv  = xAge(age);
+    const eff = Math.round(entry.income * entry.hoursRatio / 100);
+    const lbl = `S${si+1}: $${(eff/1000).toFixed(0)}k ${entry.hoursRatio}%`;
+    const labelY = P.t + 22 + (labelRowOffset % 2) * 11;  // alternate rows to avoid overlap
+    labelRowOffset++;
+    s += `<line x1="${xv}" y1="${P.t}" x2="${xv}" y2="${P.t+ch}" stroke="#a07bda" stroke-width="1" stroke-dasharray="2,4" opacity=".6"/>`;
+    s += `<text x="${xv+3}" y="${labelY}" fill="#a07bda" font-size="8" font-family="monospace">${lbl}</text>`;
+  });
+
+  // Savings depletion marker — vertical red line at first year savings goes negative
+  const deplRow = data.find(d => d.savDepleted);
+  if (deplRow && deplRow.age >= minAge && deplRow.age <= maxAge) {
+    const xv = xAge(deplRow.age);
+    s += `<line x1="${xv}" y1="${P.t}" x2="${xv}" y2="${P.t+ch}" stroke="#e05555" stroke-width="2" stroke-dasharray="3,2" opacity=".9"/>`;
+    s += `<text x="${xv+3}" y="${P.t+ch-6}" fill="#e05555" font-size="8" font-family="monospace">SAV∅</text>`;
+  }
+
+  // Area fills (wealth view)
+  if (view === 'wealth') {
+    for (const sr of [...series].reverse()) {
+      const pts = data.map(d => `${xAge(d.age)},${yVal(d[sr.key]||0)}`).join(' ');
+      s += `<polygon points="${pts} ${xAge(maxAge)},${P.t+ch} ${xAge(minAge)},${P.t+ch}" fill="${sr.color}" opacity=".07"/>`;
+    }
+  }
+
+  // Lines
+  for (const sr of series) {
+    const pts  = data.map(d => `${xAge(d.age)},${yVal(d[sr.key]||0)}`).join(' ');
+    const dash = sr.dash ? ` stroke-dasharray="${sr.dash}"` : '';
+    s += `<polyline points="${pts}" fill="none" stroke="${sr.color}" stroke-width="2"${dash} stroke-linejoin="round" stroke-linecap="round"/>`;
+  }
+
+  // Axes
+  s += `<line x1="${P.l}" y1="${P.t}" x2="${P.l}" y2="${P.t+ch}" stroke="#2a3d52"/>`;
+  s += `<line x1="${P.l}" y1="${P.t+ch}" x2="${P.l+cw}" y2="${P.t+ch}" stroke="#2a3d52"/>`;
+
+  // Legend
+  let lx = P.l;
+  for (const sr of series) {
+    s += `<line x1="${lx}" y1="${H-6}" x2="${lx+14}" y2="${H-6}" stroke="${sr.color}" stroke-width="2"/>`;
+    s += `<text x="${lx+18}" y="${H-2}" fill="${sr.color}" font-size="9" font-family="monospace">${sr.label}</text>`;
+    lx += sr.label.length * 6.2 + 26;
+  }
+
+  // Hover strips — values encoded as URIComponent to avoid attribute escaping issues
+  const bw = cw / data.length;
+  for (let i = 0; i < data.length; i++) {
+    const d    = data[i];
+    const vals = series.map(sr => sr.label + '~~' + fmt(d[sr.key]||0)).join('||');
+    s += `<rect class="hbar" x="${P.l + i*bw}" y="${P.t}" width="${bw}" height="${ch}" fill="transparent"`;
+    s += ` data-age="${d.age}" data-vals="${encodeURIComponent(vals)}"/>`;
+  }
+
+  s += `</svg>`;
+  return s;
+}
+
+// ── Render controls ───────────────────────────────────────────────────────────
+// KEY DESIGN RULE: section() appends the container div to ctrl BEFORE calling
+// contentFn, so any DOM queries inside contentFn can find their elements.
+function renderControls() {
+  log.info('renderControls() start');
+  const ctrl = document.getElementById('controls');
+  if (!ctrl) { log.error('#controls not found'); return; }
+  ctrl.innerHTML = '';
+
+  function section(title, accent, contentFn) {
+    const div = el('div', { cls:'section' }, ctrl);   // appended to ctrl immediately
+    div.style.setProperty('--acc', accent);
+
+    let open = true;
+    const btn     = el('button', { cls:'sec-btn' }, div);
+    btn.innerHTML = `<span class="arr">&#9662;</span> ${title}`;
+
+    // content is in the DOM (child of div which is child of ctrl) before contentFn runs
+    const content = el('div', { cls:'sec-content' }, div);
+    contentFn(content);   // safe — content is already in DOM
+
+    btn.onclick = () => {
+      open = !open;
+      btn.querySelector('.arr').innerHTML = open ? '&#9662;' : '&#9656;';
+      content.style.display = open ? '' : 'none';
+    };
+  }
+
+  // comboField: slider + number input, fully synced
+  function comboField(parent, label, initVal, min, max, step, fmtFn, onChangeFn, hint) {
+    const wrap    = el('div', { cls:'field' }, parent);
+    const top     = el('div', { cls:'field-top' }, wrap);
+    el('span', { cls:'field-lbl', text:label }, top);
+    const valSpan = el('span', { cls:'field-val', text:fmtFn(initVal) }, top);
+
+    const cw  = el('div', { cls:'combo-wrap' }, wrap);
+    const sld = el('input', { type:'range',  min, max, step, value:initVal }, cw);
+    const num = el('input', { type:'number', min, max, step, value:initVal }, cw);
+
+    const sync = rawVal => {
+      const v = Math.max(+min, Math.min(+max, isNaN(+rawVal) ? +min : +rawVal));
+      sld.value = v; num.value = v;
+      valSpan.textContent = fmtFn(v);
+      onChangeFn(v);
+      renderOutput();
+    };
+    sld.oninput  = () => sync(sld.value);
+    num.onchange = () => sync(num.value);
+    num.oninput  = () => { valSpan.textContent = fmtFn(+num.value || 0); };
+    num.onblur   = () => sync(num.value);
+
+    if (hint) el('div', { cls:'hint', text:hint }, wrap);
+    return valSpan;  // returned in case caller needs to update it
+  }
+
+  function selectField(parent, label, options, initVal, onChangeFn) {
+    const wrap = el('div', { cls:'field' }, parent);
+    el('div', { cls:'field-lbl', text:label }, wrap);
+    const sel = el('select', {}, wrap);
+    options.forEach(([v,l]) => {
+      const o = el('option', { value:v, text:l }, sel);
+      if (v === initVal) o.selected = true;
+    });
+    sel.onchange = () => { onChangeFn(sel.value); renderOutput(); };
+  }
+
+  // ── Ages ─────────────────────────────────────────────────────────────────
+  section('Ages', '#4a90d9', c => {
+    comboField(c, 'Current Age',         S.currentAge, 18, 70, 1, v=>`${v} yrs`, v=>{ S.currentAge = v; });
+    comboField(c, 'Full Retirement Age', S.retireAge,  18, 80, 1, v=>`${v} yrs`, v=>{ S.retireAge  = v; });
+    comboField(c, 'Super Access Age',    S.accessAge,  55, 70, 1, v=>`${v} yrs`, v=>{ S.accessAge  = v; },
+      'Preservation age — currently 60 for most Australians');
+  });
+
+  // ── Income Schedule ───────────────────────────────────────────────────────
+  section('Income Schedule', '#a07bda', c => {
+    const hint = el('div', { cls:'hint', text:'Effective income = Gross x Hours%. Add a row for each life change (career shift, pay rise, consulting, etc.).' }, c);
+    hint.style.marginBottom = '6px';
+
+    const tbl   = el('table', { cls:'sched-tbl' }, c);
+    tbl.innerHTML = `<thead><tr><th>From Age</th><th>Gross ($)</th><th>Hours%</th><th title="Save contributions during this stage?">Save?</th><th></th></tr></thead>`;
+    // Use a direct reference to tbody — NO getElementById
+    const tbody = el('tbody', {}, tbl);
+
+    function renderRows() {
+      tbody.innerHTML = '';
+      S.incomeSchedule.forEach((row, i) => {
+        const tr    = el('tr', {}, tbody);
+        const tdAge = el('td', {}, tr);
+        const tdInc = el('td', {}, tr);
+        const tdHrs = el('td', {}, tr);
+        const tdSav = el('td', { }, tr);  tdSav.style.textAlign = 'center';
+        const tdDel = el('td', {}, tr);
+
+        const inAge = el('input', { type:'number', value:row.fromAge,    min:S.currentAge, max:99,     step:1    }, tdAge); inAge.style.width='52px';
+        const inInc = el('input', { type:'number', value:row.income,     min:0,            max:999999, step:1000 }, tdInc); inInc.style.width='80px';
+        const inHrs = el('input', { type:'number', value:row.hoursRatio, min:0,            max:100,    step:5    }, tdHrs); inHrs.style.width='46px';
+
+        const chkSav = el('input', { type:'checkbox' }, tdSav);
+        chkSav.checked = row.savingsEnabled !== false;  // default true
+        chkSav.style.accentColor = '#4a90d9';
+        chkSav.style.cursor = 'pointer';
+
+        inAge.onchange  = () => { S.incomeSchedule[i].fromAge       = +inAge.value || 0;         renderOutput(); };
+        inInc.onchange  = () => { S.incomeSchedule[i].income        = +inInc.value || 0;         renderOutput(); };
+        inHrs.onchange  = () => { S.incomeSchedule[i].hoursRatio    = +inHrs.value || 0;         renderOutput(); };
+        chkSav.onchange = () => { S.incomeSchedule[i].savingsEnabled = chkSav.checked;           renderOutput(); };
+
+        if (i > 0) {
+          const del = el('button', { cls:'del-btn', text:'x' }, tdDel);
+          del.onclick = () => { S.incomeSchedule.splice(i, 1); renderRows(); renderOutput(); };
+        }
+      });
+    }
+    renderRows();
+
+    const addBtn = el('button', { cls:'add-btn', text:'+ ADD INCOME STAGE' }, c);
+    addBtn.onclick = () => {
+      const last = S.incomeSchedule[S.incomeSchedule.length - 1] || { fromAge: S.currentAge, income: 80000 };
+      S.incomeSchedule.push({ fromAge: Math.min(last.fromAge + 5, S.retireAge), income: last.income, hoursRatio: 60, savingsEnabled: false });
+      renderRows();
+      renderOutput();
+    };
+
+    selectField(c, 'Tax Year', Object.keys(TAX_TABLES).map(y => [y, y]), S.taxYear, v => { S.taxYear = v; });
+  });
+
+  // ── Superannuation ────────────────────────────────────────────────────────
+  section('Superannuation', '#4aad8e', c => {
+    comboField(c, 'Employer Super Rate',    S.empSupRate,   9,  20,      0.5, v=>`${v.toFixed(1)}%`,            v=>{ S.empSupRate   = v; },
+      '11.5% in 2024-25, rising to 12% from July 2025');
+    comboField(c, 'Salary Sacrifice Rate',  S.salSacRate,   0,  40,      0.5, v=>`${v.toFixed(1)}%`,            v=>{ S.salSacRate   = v; },
+      'Pre-tax contributions — taxed at 15% in fund, reduces taxable income');
+    comboField(c, 'Current Super Balance',  S.superBalance, 0,  3000000, 5000,v=>`$${v.toLocaleString('en-AU')}`,v=>{ S.superBalance = v; });
+    comboField(c, 'Real Growth Rate',       S.superGrowth,  0,  15,      0.5, v=>`${v.toFixed(1)}%`,            v=>{ S.superGrowth  = v; },
+      'Expected long-run real (after inflation) annual return');
+    comboField(c, 'Concessional Cap ($/yr)',  S.superConCap,  10000, 60000, 500, v=>`$${v.toLocaleString('en-AU')}`, v=>{ S.superConCap  = v; },
+      'Total pre-tax limit: employer SG + salary sacrifice. $30k in 2024-25. Amber warning if exceeded.');
+  });
+
+  // ── Savings & Investments ─────────────────────────────────────────────────
+  section('Savings & Investments', '#e8c96a', c => {
+    comboField(c, 'Savings Rate (% of income)', S.savingsRate,       0, 80,      1,   v=>`${v}%`,               v=>{ S.savingsRate      = v; },
+      'Proportion of gross income saved outside super (pre-tax basis)');
+    comboField(c, 'Current Savings Balance',    S.savingsBalance,    0, 5000000, 5000,v=>`$${v.toLocaleString('en-AU')}`, v=>{ S.savingsBalance   = v; });
+    comboField(c, 'Growth Discount vs Super',   S.savingsGrowthDisc, 0, 3,       0.1, v=>`${v.toFixed(1)}%`,    v=>{ S.savingsGrowthDisc = v; },
+      'Tax drag on non-super investments — typically 0-1%');
+  });
+
+  // ── Retirement ────────────────────────────────────────────────────────────
+  section('Retirement', '#e05555', c => {
+    comboField(c, 'Annual Retirement Spend', S.retirementSpend, 10000, 300000, 1000,
+      v => `$${v.toLocaleString('en-AU')}`, v => { S.retirementSpend = v; },
+      `FI target (25x) = $${(S.retirementSpend * 25).toLocaleString('en-AU')}`);
+  });
+
+  // ── Windfalls ─────────────────────────────────────────────────────────────
+  section('Windfalls', '#e8a84a', c => {
+    const h = el('div', { cls:'hint', text:'One-off lump sums added to savings (inheritance, property sale, bonus, etc.).' }, c);
+    h.style.marginBottom = '6px';
+
+    const list = el('div', {}, c);  // container for windfall rows
+
+    function renderWf() {
+      list.innerHTML = '';
+      S.windfalls.forEach((wf, i) => {
+        const row = el('div', { cls:'ev-row' }, list);
+
+        const d1 = el('div', {}, row); d1.style.flex = '1';
+        el('span', { cls:'ev-lbl', text:'Age' }, d1);
+        const inAge = el('input', { type:'number', value:wf.age, min:S.currentAge, max:S.endAge }, d1);
+
+        const d2 = el('div', {}, row); d2.style.flex = '2';
+        el('span', { cls:'ev-lbl', text:'Amount ($)' }, d2);
+        const inAmt = el('input', { type:'number', value:wf.amount, min:0, step:5000 }, d2);
+
+        const del = el('button', { cls:'del-btn', text:'x' }, row);
+        del.style.marginBottom = '2px';
+
+        inAge.onchange = () => { S.windfalls[i].age    = +inAge.value || 0; renderOutput(); };
+        inAmt.onchange = () => { S.windfalls[i].amount = +inAmt.value || 0; renderOutput(); };
+        del.onclick    = () => { S.windfalls.splice(i, 1); renderWf(); renderOutput(); };
+      });
+    }
+    renderWf();
+
+    const addBtn = el('button', { cls:'add-btn', text:'+ ADD WINDFALL' }, c);
+    addBtn.onclick = () => {
+      S.windfalls.push({ age: Math.min(S.currentAge + 5, S.endAge), amount: 50000 });
+      renderWf();
+      renderOutput();
+    };
+  });
+
+  // ── Age Pension ─────────────────────────────────────────────────────────────────────────────
+  section('Age Pension', '#7ab8e8', c => {
+    el('div', { cls:'hint', text:'Simplified means test (2024-25 real terms). Assets + deeming income test. Taper reduces pension above thresholds.' }, c).style.marginBottom = '6px';
+
+    // Enable toggle
+    const enRow = el('div', {}, c); enRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:.7rem';
+    el('span', { cls:'field-lbl', text:'Include Age Pension' }, enRow);
+    const chkEn = el('input', { type:'checkbox' }, enRow);
+    chkEn.checked = S.agePensionEnabled; chkEn.style.accentColor='#7ab8e8'; chkEn.style.cursor='pointer';
+    chkEn.onchange = () => { S.agePensionEnabled = chkEn.checked; renderOutput(); };
+
+    comboField(c, 'Pension Eligible Age', S.agePensionAge, 60, 70, 1, v=>`${v} yrs`, v=>{ S.agePensionAge = v; },
+      'Currently 67 for those born after 1 Jan 1957');
+
+    // Homeowner toggle
+    const hwRow = el('div', {}, c); hwRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:.7rem';
+    el('span', { cls:'field-lbl', text:'Homeowner' }, hwRow);
+    const chkHw = el('input', { type:'checkbox' }, hwRow);
+    chkHw.checked = S.isHomeowner; chkHw.style.accentColor='#7ab8e8'; chkHw.style.cursor='pointer';
+    chkHw.onchange = () => { S.isHomeowner = chkHw.checked; renderOutput(); };
+
+    // Single/couple toggle
+    const snRow = el('div', {}, c); snRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:.7rem';
+    el('span', { cls:'field-lbl', text:'Single (not couple)' }, snRow);
+    const chkSn = el('input', { type:'checkbox' }, snRow);
+    chkSn.checked = S.isSingle; chkSn.style.accentColor='#7ab8e8'; chkSn.style.cursor='pointer';
+    chkSn.onchange = () => { S.isSingle = chkSn.checked; renderOutput(); };
+  });
+
+  // ── Career Breaks ─────────────────────────────────────────────────────────
+  section('Career Breaks', '#7ab8e8', c => {
+    const h = el('div', { cls:'hint', text:'Years with zero income (travel, study, parental leave, illness, etc.).' }, c);
+    h.style.marginBottom = '6px';
+
+    const list = el('div', {}, c);
+
+    function renderBr() {
+      list.innerHTML = '';
+      S.careerBreaks.forEach((age, i) => {
+        const row = el('div', { cls:'ev-row' }, list);
+
+        const d1  = el('div', {}, row); d1.style.flex = '1';
+        el('span', { cls:'ev-lbl', text:'Age (year off)' }, d1);
+        const inp = el('input', { type:'number', value:age, min:S.currentAge, max:S.endAge }, d1);
+
+        const del = el('button', { cls:'del-btn', text:'x' }, row);
+        del.style.marginBottom = '2px';
+
+        inp.onchange = () => { S.careerBreaks[i] = +inp.value || 0; renderOutput(); };
+        del.onclick  = () => { S.careerBreaks.splice(i, 1); renderBr(); renderOutput(); };
+      });
+    }
+    renderBr();
+
+    const addBtn = el('button', { cls:'add-btn', text:'+ ADD CAREER BREAK' }, c);
+    addBtn.onclick = () => {
+      S.careerBreaks.push(Math.min(S.currentAge + 3, S.endAge));
+      renderBr();
+      renderOutput();
+    };
+  });
+
+  log.info('renderControls() done');
+}
+
+// ── Render output ─────────────────────────────────────────────────────────────
+function renderOutput() {
+  log.info('renderOutput() start');
+
+  let data;
+  try { data = simulate(); }
+  catch (e) { log.error('simulate() threw:', e); return; }
+
+  const out = document.getElementById('output');
+  if (!out) { log.error('#output not found'); return; }
+  out.innerHTML = '';
+
+  const fiTarget  = S.retirementSpend * 25;
+  const now       = data[0] || {};
+  const atRetire  = data.find(d => d.age === S.retireAge) || data[data.length-1] || {};
+  const at60      = data.find(d => d.age === 60) || data[data.length-1] || {};
+  const at70      = data.find(d => d.age === 70) || data[data.length-1] || {};
+  const fiPct     = Math.min(100, ((now.netWorth||0) / fiTarget) * 100);
+  const retirePct = Math.min(100, ((atRetire.netWorth||0) / fiTarget) * 100);
+
+  // FI bar — two markers: current NW fill + retirement projection pointer
+
+  const fiWrap  = el('div', { id:'fi-wrap' }, out);
+  const fiLbls  = el('div', { id:'fi-labels' }, fiWrap);
+  el('span', { text:`FI Progress — 4% Rule — Target ${fmt(fiTarget)}` }, fiLbls);
+  const pctSpan = el('span', {}, fiLbls);
+  pctSpan.innerHTML = `<span style="color:#7ab8e8">${fiPct.toFixed(1)}% now</span><span style="color:#3a5268"> / </span><span style="color:#e8c96a">${retirePct.toFixed(1)}% at retirement</span>`;
+  const fiTrack = el('div', { id:'fi-track' }, fiWrap);
+  // Current NW fill
+  el('div', { id:'fi-fill' }, fiTrack).style.width = `${fiPct}%`;
+  // Retirement projection marker (triangle pointer above bar)
+  const fiRetireMarker = el('div', {}, fiWrap);
+  fiRetireMarker.style.cssText = `position:relative;height:10px;margin-top:2px`;
+  const fiPtr = el('div', {}, fiRetireMarker);
+  fiPtr.style.cssText = `position:absolute;left:${retirePct}%;transform:translateX(-50%);font-family:monospace;font-size:8px;color:#e8c96a;white-space:nowrap`;
+  fiPtr.textContent = `▲ Age ${S.retireAge}`;
+
+  // Stat cards
+  const statsDiv = el('div', { id:'stats' }, out);
+  [
+    { lbl:'Net Worth Now',                val:fmt(now.netWorth||0),      sub:`Super: ${fmt(now.superBal||0)}`,  acc:'#4a90d9' },
+    { lbl:`At Retirement (${S.retireAge})`, val:fmt(atRetire.netWorth||0),
+      sub:(atRetire.netWorth||0)>=fiTarget?'✓ FI achieved':'✗ Below FI target',
+      acc:(atRetire.netWorth||0)>=fiTarget?'#4aad8e':'#e05555' },
+    { lbl:'At Age 60',                    val:fmt(at60.netWorth||0),     sub:`Super: ${fmt(at60.superBal||0)}`, acc:'#e8c96a' },
+    { lbl:'At Age 70',                    val:fmt(at70.netWorth||0),
+      sub:(at70.netWorth||0)>0?`Spend rate: ${((S.retirementSpend/(at70.netWorth||1))*100).toFixed(1)}%`:'⚠ Depleted',
+      acc:'#a07bda' },
+  ].forEach(({ lbl, val, sub, acc }) => {
+    const card = el('div', { cls:'stat' }, statsDiv);
+    card.style.setProperty('--acc', acc);
+    el('div', { cls:'stat-lbl', text:lbl }, card);
+    el('div', { cls:'stat-val', text:val }, card);
+    el('div', { cls:'stat-sub', text:sub }, card);
+  });
+
+  // Chart tabs
+  const tabsDiv = el('div', { id:'chart-tabs' }, out);
+  [['wealth','Wealth'],['income','Income & Tax'],['flows','Cash Flows']].forEach(([v,l]) => {
+    const btn = el('button', { cls:'tab'+(S.chartView===v?' on':''), text:l }, tabsDiv);
+    btn.onclick = () => { S.chartView = v; renderOutput(); };
+  });
+
+  // Chart box
+  const chartBox = el('div', { id:'chart-box' }, out);
+  const W = Math.max(out.clientWidth - 48, 480);
+  const H = 310;
+
+  try {
+    chartBox.innerHTML = buildChart(data, S.chartView, W, H);
+  } catch(e) {
+    log.error('buildChart() threw:', e);
+    chartBox.innerHTML = `<div style="color:#e05555;padding:1rem;font-family:monospace;font-size:.8rem">Chart error: ${e.message}</div>`;
+  }
+
+  // Tooltip element (outside SVG string, appended after innerHTML set)
+  const tip = el('div', { id:'tip' }, chartBox);
+
+  // Wire hover strips
+  chartBox.querySelectorAll('.hbar').forEach(rect => {
+    rect.addEventListener('mousemove', evt => {
+      try {
+        const raw   = decodeURIComponent(rect.dataset.vals);
+        const pairs = raw.split('||').map(p => p.split('~~'));
+        tip.innerHTML = `<div style="color:#8a9bb0;margin-bottom:4px;letter-spacing:.06em;font-size:.65rem">AGE ${rect.dataset.age}</div>` +
+          pairs.map(([k,v]) => `<div style="margin-bottom:2px">${k}: <strong style="color:#e2eaf4">${v}</strong></div>`).join('');
+        const box = chartBox.getBoundingClientRect();
+        let tx = evt.clientX - box.left + 12;
+        if (tx + 170 > box.width) tx = evt.clientX - box.left - 175;
+        tip.style.left    = Math.max(0, tx) + 'px';
+        tip.style.top     = Math.max(0, evt.clientY - box.top - 30) + 'px';
+        tip.style.display = 'block';
+      } catch(e) { log.error('tooltip error:', e); }
+    });
+    rect.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+  });
+
+  // Projection table
+  const tblWrap   = el('div', { id:'tbl-wrap' }, out);
+  const tblHeader = el('div', { id:'tbl-head' }, tblWrap);
+  el('span', { text:'Projection Table' }, tblHeader);
+  // Toggle button — every year vs every other year
+  const toggleBtn = el('button', {
+    text: S.tableEveryYear ? 'Show every 2nd year' : 'Show every year',
+  }, tblHeader);
+  toggleBtn.style.cssText = 'float:right;background:none;border:1px solid #2a3d52;color:#5a7a96;border-radius:3px;padding:1px 8px;cursor:pointer;font-size:.6rem;font-family:monospace;letter-spacing:.06em';
+  toggleBtn.onmouseover = () => { toggleBtn.style.borderColor='#4a90d9'; toggleBtn.style.color='#4a90d9'; };
+  toggleBtn.onmouseout  = () => { toggleBtn.style.borderColor='#2a3d52'; toggleBtn.style.color='#5a7a96'; };
+  toggleBtn.onclick = () => { S.tableEveryYear = !S.tableEveryYear; renderOutput(); };
+
+  const tblScroll = el('div', { id:'tbl-scroll' }, tblWrap);
+  const tbl       = el('table', { id:'proj-tbl' }, tblScroll);
+
+  // ── Retirement Income column: collapsed = total, expanded = 3 sub-columns ──
+  const retExp = S.retIncExpanded;
+
+  // Build thead
+  const thead = el('thead', {}, tbl);
+  const headTr = el('tr', {}, thead);
+  // Fixed columns
+  for (const h of ['Age','Net Worth','Super','Savings','Income','Tax','Inc.Balance','Sav.Contrib']) {
+    el('th', { text:h }, headTr);
+  }
+  // Retirement Income header — button toggles expansion
+  const retTh = el('th', {}, headTr);
+  retTh.colSpan = retExp ? 3 : 1;
+  retTh.style.cssText = 'text-align:right;white-space:nowrap';
+  const retThBtn = el('button', { text: retExp ? '− Pension / Sup / Sav' : '+ Ret.Income' }, retTh);
+  retThBtn.style.cssText = 'background:none;border:none;color:#5a7a96;cursor:pointer;font-size:.62rem;font-family:monospace;font-weight:500;letter-spacing:.06em;padding:0;white-space:nowrap';
+  retThBtn.onmouseover = () => retThBtn.style.color = '#e8c96a';
+  retThBtn.onmouseout  = () => retThBtn.style.color = '#5a7a96';
+  retThBtn.onclick = () => { S.retIncExpanded = !S.retIncExpanded; renderOutput(); };
+
+  const tbody   = el('tbody', {}, tbl);
+  const keyAges = new Set([S.retireAge, S.accessAge, S.agePensionAge, 65, 70]);
+
+  data.forEach((row, i) => {
+    const isKey = keyAges.has(row.age);
+    if (!S.tableEveryYear && i % 2 !== 0 && !isKey) return;
+
+    const supDepleted = row.supOutflow > 0 && row.superBal < S.retirementSpend;
+    const savDepleted = row.savDepleted;
+    const retTotal    = row.pension + row.supOutflow + row.savOutflow;
+
+    const tr = el('tr', { cls: isKey ? 'key' : '' }, tbody);
+
+    const fixedCells = [
+      { val: String(row.age) + (isKey?' *':''), color: isKey?'#e8c96a':'#8a9bb0' },
+      { val: fmtFull(row.netWorth),   color: row.netWorth >= fiTarget ? '#4aad8e' : '#c8d8ea' },
+      { val: fmtFull(row.superBal),   color: row.capBreached ? '#e8a84a' : '#4aad8e',
+        title: row.capBreached ? '⚠ Concessional cap exceeded this year' : '' },
+      { val: fmtFull(row.savingsBal), color: savDepleted ? '#e05555' : '#4a90d9' },
+      { val: fmtFull(row.income),     color: '#a07bda' },
+      { val: fmtFull(row.tax),        color: '#e05555' },
+      { val: fmtFull(row.incBalance), color: row.incBalance >= 0 ? '#c8d8ea' : '#e05555' },
+      { val: fmtFull(row.savContrib), color: '#e8c96a' },
+    ];
+
+    fixedCells.forEach(({ val, color, title }) => {
+      const td = el('td', { text: val }, tr);
+      td.style.color = color;
+      if (savDepleted) td.style.background = 'rgba(224,85,85,.07)';
+      if (title) td.title = title;
+    });
+
+    if (retExp) {
+      // Three expanded columns
+      const tdPen = el('td', { text: row.pension > 0 ? fmtFull(row.pension) : '—' }, tr);
+      tdPen.style.color = row.pension > 0 ? '#7ab8e8' : '#3a5268';
+      if (savDepleted) tdPen.style.background = 'rgba(224,85,85,.07)';
+
+      const tdSup = el('td', { text: fmtFull(row.supOutflow) }, tr);
+      tdSup.style.color = '#4aad8e';
+      if (savDepleted) tdSup.style.background = 'rgba(224,85,85,.07)';
+
+      const tdSav = el('td', { text: fmtFull(row.savOutflow) + (supDepleted ? ' †' : '') }, tr);
+      tdSav.style.color = savDepleted ? '#e05555' : supDepleted ? '#e8a84a' : '#4a90d9';
+      if (savDepleted) tdSav.style.background = 'rgba(224,85,85,.07)';
+    } else {
+      // Single collapsed column — total retirement income
+      const tdRet = el('td', { text: retTotal > 0 ? fmtFull(retTotal) : '—' }, tr);
+      tdRet.style.color = savDepleted ? '#e05555' : retTotal > 0 ? '#c8d8ea' : '#3a5268';
+      if (savDepleted) tdRet.style.background = 'rgba(224,85,85,.07)';
+      // Small breakdown tooltip
+      if (retTotal > 0) {
+        const parts = [];
+        if (row.pension > 0)    parts.push(`Pension: ${fmtFull(row.pension)}`);
+        if (row.supOutflow > 0) parts.push(`Super: ${fmtFull(row.supOutflow)}`);
+        if (row.savOutflow > 0) parts.push(`Savings: ${fmtFull(row.savOutflow)}`);
+        tdRet.title = parts.join(' | ');
+      }
+    }
+  });
+
+  el('div', { id:'foot', html:
+    `All figures in today's dollars (real terms) &middot; Super contributions tax 15% &middot; Australian income tax + LITO + Medicare Levy applied<br>
+    4% rule: FI target = 25&times; annual spend &middot; Super drawn post-preservation age &middot; Savings bridge gap to super access<br>
+    &dagger; Sav.Outflow in amber = super drawdown redirected to savings when super is insufficient &middot; Red rows = savings depleted<br>
+    Super column in amber = concessional cap exceeded (⚠) &middot; Pension = simplified Age Pension estimate (assets + income means test)`
+  }, out);
+
+  log.info('renderOutput() done');
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+try { renderControls(); } catch(e) { log.error('renderControls failed:', e); }
+try { renderOutput();   } catch(e) { log.error('renderOutput failed:',   e); }
+
+let _rt;
+window.addEventListener('resize', () => {
+  clearTimeout(_rt);
+  _rt = setTimeout(() => { try { renderOutput(); } catch(e) { log.error('resize render failed:', e); } }, 180);
+});
+
+log.info('FIRE.calc initialised');
+</script>
+</body>
+</html>
